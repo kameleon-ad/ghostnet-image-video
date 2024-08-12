@@ -5,7 +5,7 @@ from torchvision.datasets.folder import default_loader
 
 
 class RobustImageFolder(ImageFolder):
-    def __init__(self, root, split_seed: int, transform=None, batch_size = 128):
+    def __init__(self, root, split_seed: int, transform=None, batch_size=128):
         super().__init__(root, transform=transform, loader=self.robust_loader)
         self.transform = transform
         self.split_seed = split_seed
@@ -20,7 +20,7 @@ class RobustImageFolder(ImageFolder):
 
     def __getitem__(self, index):
         while True:
-            #print(index)
+            # print(index)
             path, target = self.samples[index]
             sample = self.loader(path)
             if sample is None:
@@ -32,7 +32,7 @@ class RobustImageFolder(ImageFolder):
             sample = self.transform(sample)
         return sample, target
 
-    def generate_data_loader(self, rate: float = 0.8):
+    def split_data_loader(self, rate: float = 0.8):
         total_image_count = len(self)
         all_indicies = np.arange(total_image_count)
         np.random.seed(self.split_seed)
@@ -40,7 +40,8 @@ class RobustImageFolder(ImageFolder):
 
         split = int(rate * total_image_count)
 
-        train_indices, val_indices = random_indicies[split:], random_indicies[:split]
+        train_indices = random_indicies[split:]
+        val_indices = random_indicies[:split]
 
         train_dataset = Subset(self, train_indices)
         val_dataset = Subset(self, val_indices)

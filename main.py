@@ -4,7 +4,6 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from torch import nn, optim
 
 from loader import RobustImageFolder
 from models import GhostImageNet
@@ -21,12 +20,11 @@ def parse_args():
     parser.add_argument("--data_split_seed", default=42, type=int)
     parser.add_argument("--torch_seed", default=42, type=int)
     parser.add_argument("--learning_rate", default=0.001, type=float)
-    parser.add_argument("--parallel", default=True, type=bool)
 
     return parser.parse_args()
 
 
-def get_cuda_devices():
+def get_cuda_device_ids():
     assert torch.cuda.is_available()
     return [idx for idx in range(torch.cuda.device_count())]
 
@@ -45,30 +43,31 @@ def main(args):
     data_split_seed: int = args.data_split_seed
     torch_seed: int = args.torch_seed
     lr: float = args.learning_rate
-    parallel: bool = args.parallel
 
     if not torch.cuda.is_available():
-        raise Exception("Cuda is not able to use. Please run on the cuda device")
+        raise Exception("Cuda is not able to use. Please run with the cuda")
 
     configure_seed_globally(torch_seed)
 
-    full_dataset = RobustImageFolder(train_data_path, seed=data_split_seed, transform=TRANSFORM)
-    train_loader, val_loader = full_dataset.generate_data_loader(data_split_rate)
+    full_dataset = RobustImageFolder(
+        train_data_path,
+        seed=data_split_seed,
+        transform=TRANSFORM,
+    )
+    train_loader, val_loader = full_dataset.split_data_loader(data_split_rate)
 
     model = GhostImageNet(1)
-    criterion = nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-    if parallel:
-        model = nn.DataParallel(model, device_ids=get_cuda_devices())
-        model = model.to(torch.device("cuda"))
 
     trainer = Trainer(
         model=model,
-        optimizer=optimizer,
-        criterion=criterion,
+        optimizer="Adam",
+        lr=lr,
         train_loader=train_loader,
         val_loader=val_loader,
+        device=torch.device("cuda"),
+        device_ids=get_cuda_device_ids(),
     )
+    trainer.train(20)
 
 
 if __name__ == "__main__":

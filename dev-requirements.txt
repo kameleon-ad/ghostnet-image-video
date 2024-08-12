@@ -121,7 +121,9 @@ torch==2.4.0
 torchvision==0.19.0
     # via timm
 tqdm==4.66.5
-    # via huggingface-hub
+    # via
+    #   -r requirements.in
+    #   huggingface-hub
 triton==3.0.0
     # via torch
 typing-extensions==4.12.2
